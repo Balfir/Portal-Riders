@@ -1,0 +1,28 @@
+name: Upload Build to Hetzner Storage Box
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Install rsync and ssh
+      run: sudo apt-get update && sudo apt-get install -y rsync openssh-client
+
+    - name: Prepare SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.STORAGEBOX_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.STORAGEBOX_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Upload build/ to Storage Box
+      run: |
+        rsync -avz --delete ./build/ "${{ secrets.STORAGEBOX_USER }}@${{ secrets.STORAGEBOX_HOST }}:${{ secrets.STORAGEBOX_PATH }}"
